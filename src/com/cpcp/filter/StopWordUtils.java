@@ -112,6 +112,9 @@ public final class StopWordUtils {
       return stopWordsForLevel;
    }
 
+   /**
+    * The most base stopwords taken from: http://www.ranks.nl/resources/stopwords.html.
+    */
    private static final String[] LEVEL_0_STOPWORDS = new String[]{
       "a",
       "about",

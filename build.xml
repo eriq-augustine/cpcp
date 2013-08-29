@@ -8,6 +8,7 @@
    <path id="project.classpath">
       <pathelement location="bin"/>
       <pathelement location="lib/automaton.jar"/>
+      <pathelement location="lib/commons-lang-2.6.jar"/>
       <pathelement location="lib/libstemmer.jar"/>
       <pathelement location="lib/weka.jar"/>
    </path>

@@ -1,6 +1,7 @@
-package com.cpcp.classify;
+package com.cpcp;
 
 import com.cpcp.features.FeatureSetGenerator;
+import com.cpcp.features.NGram;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,18 @@ import java.util.List;
  * A classifier that can classify text.
  */
 public abstract class TextClassifier {
+   /**
+    * The possible possibleClasses for documents.
+    */
+   protected List<String> possibleClasses;
+
+   protected FeatureSetGenerator fsg;
+
+   public TextClassifier(List<String> possibleClasses, FeatureSetGenerator fsg) {
+      this.possibleClasses = new ArrayList<String>(possibleClasses);
+      this.fsg = fsg;
+   }
+
    /**
     * Classify many documents.
     */
@@ -28,32 +41,14 @@ public abstract class TextClassifier {
    public abstract String classify(String content);
 
    /**
-    * Train the classifier with the given training set.
-    * This can also be called to retrain the classifier.
-    *
-    * @param contents The documents in the training set.
-    * @param classes The classes of the documents in the training set.
-    *
-    * @.pre contents.size() == classes.size().
-    */
-   public void train(List<String> contents, List<String> classes) {
-      assert(contents.size() == classes.size());
-
-      //TEST
-      //train(contents, classes, new Unigram
-   }
-
-   /**
     * Train the classifier with the given training set, and use the given
     *  feature set reducer to reduce the feature space.
     * This can also be called to retrain the classifier.
     *
     * @param contents The documents in the training set.
     * @param classes The classes of the documents in the training set.
-    * @param generator The FeatureSetGenerator to use.
     *
     * @.pre contents.size() == classes.size().
     */
-   public abstract void train(List<String> contents, List<String> classes,
-                              FeatureSetGenerator generator);
+   public abstract void train(List<String> contents, List<String> classes);
 }
