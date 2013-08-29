@@ -7,7 +7,9 @@
    <property name="source" value="1.7"/>
    <path id="project.classpath">
       <pathelement location="bin"/>
-      <!-- <pathelement location="lib/mysql-connector-java-5.1.15-bin.jar"/> -->
+      <pathelement location="lib/automaton.jar"/>
+      <pathelement location="lib/libstemmer.jar"/>
+      <pathelement location="lib/weka.jar"/>
    </path>
 
    <target name="init">
@@ -55,7 +57,7 @@
       <echo message="Running all tests." />
       <junit showoutput="true" printsummary="yes" fork="yes">
          <formatter type="brief" usefile="false"/>
-         <classpath refid="cpcp.classpath"/>
+         <classpath refid="project.classpath"/>
          <batchtest fork="yes">
             <fileset dir="test">
                <include name="**/*JTest.java"/>
@@ -70,7 +72,7 @@
 
    <target name="runtest" description="Runs the test you specify on the command line with -Dtest=" depends="build, ensure-test-name">
       <junit showoutput="true" printsummary="yes" fork="yes">
-         <classpath refid="cpcp.classpath" />
+         <classpath refid="project.classpath" />
          <formatter type="brief" usefile="false"/>
          <batchtest fork="yes">
             <fileset dir="test">
@@ -102,7 +104,7 @@
 
    <target name="lint" description="Lint check.">
       <lint4j sourcepath="src" packages="com.cpcp.*" level="2">
-         <classpath refid="cpcp.classpath"/>
+         <classpath refid="project.classpath"/>
       </lint4j>
    </target>
 
