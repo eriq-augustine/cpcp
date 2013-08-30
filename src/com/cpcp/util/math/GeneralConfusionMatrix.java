@@ -120,24 +120,25 @@ public class GeneralConfusionMatrix {
    public String toString() {
       String rtn = "";
 
-      for (int col = 0; col < labels.length; col++) {
-         rtn += String.format(" %3s |", labels[col]);
+      int maxLabelLength = 0;
+      for (String label : labels) {
+         maxLabelLength = Math.max(label.length(), maxLabelLength);
       }
-      rtn = rtn.replaceFirst("\\s*\\|\\s*$", "\n");
-      rtn += ">----------<\n";
+
+      // Headers
+      rtn += String.format("%" + maxLabelLength + "s |", "");
+      for (int col = 0; col < labels.length; col++) {
+         rtn += String.format(" %" + labels[col].length() + "s |", labels[col]);
+      }
+      rtn += "\n";
 
       for (int row = 0; row < labels.length; row++) {
-         for (int col = 0; col < labels.length; col++) {
-            rtn += String.format(" %3d |", matrix[row][col]);
-         }
-         rtn = rtn.replaceFirst("\\|$", "\n");
+         rtn += String.format("%" + maxLabelLength + "s |", labels[row]);
 
-         if (row != (labels.length - 1)) {
-            for (int col = 0; col < labels.length; col++) {
-               rtn += "-----+";
-            }
-            rtn = rtn.replaceFirst("\\+$", "\n");
+         for (int col = 0; col < labels.length; col++) {
+            rtn += String.format(" %" + labels[col].length() + "d |", matrix[row][col]);
          }
+         rtn += "\n";
       }
 
       return rtn;

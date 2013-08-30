@@ -2,6 +2,7 @@ package com.cpcp.evaluation;
 
 import com.cpcp.TextClassifier;
 import com.cpcp.features.FeatureSetGenerator;
+import com.cpcp.util.math.GeneralConfusionMatrix;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -81,22 +82,10 @@ public class Evaluator {
       String[] classValues = classValueSet.toArray(new String[0]);
       int size = classValues.length;
 
+      GeneralConfusionMatrix confusionMatrix = new GeneralConfusionMatrix(classValues);
+
       if (numFolds < 1) {
-         return new Results(new int[0][0], (System.currentTimeMillis() - timestamp), classValues);
-      }
-
-      // TODO(eriq): When using general confusion matrix, this is unnecessary.
-      Map<String, Integer> indexMap = new HashMap<String, Integer>();
-      for (int i = 0; i < classValues.length; i++) {
-         indexMap.put(classValues[i], new Integer(i));
-      }
-
-      int[][] confusionMatrix = new int[size][size];
-
-      for (int row = 0; row < size; row++) {
-         for (int col = 0; col < size; col++) {
-            confusionMatrix[row][col] = 0;
-         }
+         return new Results(confusionMatrix, (System.currentTimeMillis() - timestamp));
       }
 
       List<List> toSplit = new ArrayList<List>();
@@ -142,15 +131,12 @@ public class Evaluator {
 
          // For all the results.
          for (int stringNdx = 0; stringNdx < predictions.size(); stringNdx++) {
-            // Put the result in the confusion matrix
-            int actualNdx = indexMap.get(splitClasses.get(foldNdx).get(stringNdx)).intValue();
-            int predNdx = indexMap.get(predictions.get(stringNdx)).intValue();
-
-            confusionMatrix[actualNdx][predNdx]++;
+            confusionMatrix.add(predictions.get(stringNdx),
+                                splitClasses.get(foldNdx).get(stringNdx));
          }
       }
 
-      return new Results(confusionMatrix, (System.currentTimeMillis() - timestamp), classValues);
+      return new Results(confusionMatrix, (System.currentTimeMillis() - timestamp));
    }
 
    /**
@@ -214,57 +200,19 @@ public class Evaluator {
       /**
        * The confusion matrix for this evaluation.
        */
-      private int[][] confusionMatrix;
-
-      /**
-       * The number of misses the classifier had.
-       */
-      private int misses;
-
-      /**
-       * The number of correct classifications (hits) that the classifier had.
-       */
-      private int hits;
-
-      /**
-       * The root mean squared error for this evaluation.
-       */
-      private double rmsError;
+      private GeneralConfusionMatrix confusionMatrix;
 
       /**
        * The time it took in ms for the Evaluation to run.
        */
       private long time;
 
-      // TODO(eriq): This becomes unecessary when using general confusion matrix
-      private String[] classValues;
-
       /**
        * Constructor for the Results.
-       * Simple calculations (misses, hits, rmsError) are done here.
        */
-      public Results(int[][] confusionMatrix, long time, String[] classValues) {
+      public Results(GeneralConfusionMatrix confusionMatrix, long time) {
          this.time = time;
          this.confusionMatrix = confusionMatrix;
-         this.classValues = classValues;
-         misses = 0;
-         hits = 0;
-
-         for (int i = 0; i < confusionMatrix.length; i++) {
-            for (int j = 0; j < confusionMatrix[i].length; j++) {
-               if (i == j) {
-                  hits += confusionMatrix[i][j];
-               } else {
-                  misses += confusionMatrix[i][j];
-               }
-            }
-         }
-
-         if (misses + hits > 0) {
-            rmsError = Math.sqrt((misses ^ 2) / (double)(misses + hits));
-         } else {
-            rmsError = 0;
-         }
       }
 
       /**
@@ -275,61 +223,20 @@ public class Evaluator {
       }
 
       /**
-       * Get the number of misses.
-       */
-      public int misses() {
-         return misses;
-      }
-
-      /**
-       * Get the number of hits.
-       */
-      public int hits() {
-         return hits;
-      }
-
-      /**
-       * Get the root mean squared error for this evaluation.
-       */
-      public double rmsError() {
-         return rmsError;
-      }
-
-      /**
        * Get the confusion matrix for this evaluation.
        */
-      public int[][] confusionMatrix() {
+      public GeneralConfusionMatrix confusionMatrix() {
          return confusionMatrix;
       }
 
       /**
-       * Return a string with the number of hits, misses, confusion matrix, and.
+       * Return a string with a summary of the evaluation.
        */
       public String toString() {
          String rtn = "";
 
-         //Put in the hits and misses
-         rtn += String.format("Hits: %d, Misses: %d\n\n", hits, misses);
-
-         //Column headers
-         rtn += String.format("%15s|", "");
-         for (String classVal : classValues) {
-            rtn += String.format(String.format("%%%ds|", classVal.length()), classVal);
-         }
-         rtn += "\n";
-
-         for (int i = 0; i < confusionMatrix.length; i++) {
-            rtn += String.format("%15s|", classValues[i]);
-
-            for (int j = 0; j < confusionMatrix[i].length; j++) {
-               rtn += String.format(String.format("%%%dd|", classValues[j].length()),
-                                    confusionMatrix[i][j]);
-            }
-            rtn += "\n";
-         }
-
-         rtn += ("\nError Rate: " + rmsError + "\n");
-         rtn += ("Runtime: " + time + "\n");
+         rtn += confusionMatrix.fullToString() + "\n";
+         rtn += "Runtime: " + time + "\n";
 
          return rtn;
       }
