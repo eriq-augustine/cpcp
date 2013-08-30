@@ -88,11 +88,11 @@ public class Evaluator {
          return new Results(confusionMatrix, (System.currentTimeMillis() - timestamp));
       }
 
-      List<List> toSplit = new ArrayList<List>();
+      List<List<String>> toSplit = new ArrayList<List<String>>();
       toSplit.add(classes);
       toSplit.add(contents);
 
-      List<List<List>> splittedList = new ArrayList<List<List>>();
+      List<List<List<String>>> splittedList = new ArrayList<List<List<String>>>();
 
       //Split the training set into the number of folds.
       splitList(toSplit, splittedList, numFolds, seed);
@@ -152,7 +152,8 @@ public class Evaluator {
     *
     * @.pre Every list in inputLists should be the same size.
     */
-   protected static void splitList(List<List> inputLists, List<List<List>> outputLists,
+   protected static void splitList(List<List<String>> inputLists,
+                                   List<List<List<String>>> outputLists,
                                    int numFolds, long seed) {
       // Get a new Random
       Random rand = new Random(seed);
@@ -162,11 +163,11 @@ public class Evaluator {
 
       //FOR every input list
       for (int numLists = 0; numLists < inputLists.size(); numLists++) {
-         List<List> newList = new ArrayList<List>();
+         List<List<String>> newList = new ArrayList<List<String>>();
 
          //create all the lists
          for (int ndx = 0; ndx < numFolds; ndx++) {
-            newList.add(new ArrayList());
+            newList.add(new ArrayList<String>());
          }
 
          outputLists.add(newList);

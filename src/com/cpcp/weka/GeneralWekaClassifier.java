@@ -44,7 +44,8 @@ public class GeneralWekaClassifier extends TextClassifier {
    /**
     * Construct a GeneralClassifier.
     *
-    * @param classy An UNTRAINED Classifier. This classifier should have all its desired options set.
+    * @param classy An UNTRAINED Classifier.
+    *  This classifier should have all its desired options set.
     */
    public GeneralWekaClassifier(Classifier classy,
                                 FeatureSetGenerator fsg,
