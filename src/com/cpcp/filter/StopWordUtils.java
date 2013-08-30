@@ -17,14 +17,6 @@ import java.util.Set;
  */
 public final class StopWordUtils {
    /**
-    * The stopwords table.
-    * Each inner Set is just a presence HashMap representing a different stop level.
-    * Stopword levels decrease in importance from zero. (Zero is the most
-    *  important/frequent stopwords).
-    */
-   private static Map<Integer, Set<String>> stopwords = loadStopWords();
-
-   /**
     * Construct a new StopWordFilter.
     * Private to promote static behavior.
     */
@@ -291,4 +283,12 @@ public final class StopWordUtils {
       "yourself",
       "yourselves"
    };
+
+   /**
+    * The stopwords table.
+    * Each inner Set is just a presence HashMap representing a different stop level.
+    * Stopword levels decrease in importance from zero. (Zero is the most
+    *  important/frequent stopwords).
+    */
+   private static Map<Integer, Set<String>> stopwords = loadStopWords();
 }

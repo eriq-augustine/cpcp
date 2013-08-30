@@ -23,7 +23,8 @@ public class Evaluator {
       List<String> contents = new ArrayList<String>();
       List<String> classes = new ArrayList<String>();
 
-      loadTrainingSet("data/trainingData.gsv", "`", contents, classes);
+      loadTrainingSet("data/classifierTrainingTweetData.gsv", "`", contents, classes);
+      // loadTrainingSet("data/classifierTrainingTweetDataCompressed.gsv", "`", contents, classes);
 
       Set<String> classValueSet = getClassValues(classes);
       String[] classValues = classValueSet.toArray(new String[0]);
@@ -42,12 +43,15 @@ public class Evaluator {
       System.out.println(res);
    }
 
-   //TEST
-   public static void loadTrainingSet(String path,
-                                      String seperator,
-                                      List<String> contents,
-                                      List<String> classes) throws Exception {
-      // TODO
+   /**
+    * For testing only, load a training set from a file.
+    * It is assumed that there is one document per line in the form:
+    *  <class><seperator><document>
+    */
+   private static void loadTrainingSet(String path,
+                                       String seperator,
+                                       List<String> contents,
+                                       List<String> classes) throws Exception {
       Scanner fileScanner = new Scanner(new File(path));
       while (fileScanner.hasNextLine()) {
          String line = fileScanner.nextLine();
