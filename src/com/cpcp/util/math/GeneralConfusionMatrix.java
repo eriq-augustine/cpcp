@@ -1,6 +1,7 @@
 package com.cpcp.util.math;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A general confusion matrix that should work for binary and multiclass condusion matricies.
@@ -10,6 +11,7 @@ public class GeneralConfusionMatrix {
    private String[] labels;
    private int[][] matrix;
    private int count = 0;
+   private Map<String, Integer> labelLookup;
 
    /**
     * A binary classification confuciton martix should be constructed with ["T", "F"].
@@ -26,10 +28,15 @@ public class GeneralConfusionMatrix {
 
       matrix = new int[labels.length][labels.length];
       count = 0;
+
+      labelLookup = new HashMap<String, Integer>();
+      for (int i = 0; i < labels.length; i++) {
+         labelLookup.put(labels[i], new Integer(i));
+      }
    }
 
    public void add(String predictedLabel, String actualLabel) {
-      add(Arrays.binarySearch(labels, predictedLabel), Arrays.binarySearch(labels, actualLabel));
+      add(labelLookup.get(predictedLabel).intValue(), labelLookup.get(actualLabel).intValue());
    }
 
    public void add(int predictedIndex, int actualIndex) {

@@ -1,4 +1,4 @@
-package com.cpcp.classify.weka;
+package com.cpcp.weka;
 
 import com.cpcp.TextClassifier;
 import com.cpcp.features.FeatureSetGenerator;
