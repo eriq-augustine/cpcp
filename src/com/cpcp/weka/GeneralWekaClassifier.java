@@ -1,6 +1,7 @@
 package com.cpcp.weka;
 
 import com.cpcp.TextClassifier;
+import com.cpcp.ClassificationResult;
 import com.cpcp.features.FeatureSetGenerator;
 import com.cpcp.filter.TextFilter;
 
@@ -65,11 +66,11 @@ public class GeneralWekaClassifier extends TextClassifier {
       buildClassifier(trainSet);
    }
 
-   public String classify(String document) {
+   public ClassificationResult classify(String document) {
       List<String> documents = new ArrayList<String>(1);
       documents.add(document);
 
-      List<String> classes = classify(documents);
+      List<ClassificationResult> classes = classify(documents);
       return classes.get(0);
    }
 
@@ -78,25 +79,45 @@ public class GeneralWekaClassifier extends TextClassifier {
     * Need to override because it is more efficient for WEKA classifiers
     * to do groups at a time.
     */
-   public List<String> classify(List<String> contents) {
+   public List<ClassificationResult> classify(List<String> contents) {
       assert(activeClassifier != null);
 
       Instances unclassed = prepUnclassed(contents);
 
-      List<String> rtn = new ArrayList<String>();
+      List<ClassificationResult> rtn = new ArrayList<ClassificationResult>();
 
       for (int ndx = 0; ndx < unclassed.numInstances(); ndx++) {
-         try {
-            int prediction = (int)activeClassifier.classifyInstance(unclassed.instance(ndx));
-            rtn.add(unclassed.instance(ndx).classAttribute().value(prediction));
-         } catch (Exception ex) {
-            // TODO(eriq): Real logging, error.
-            System.err.println("Unable to classify a tweet" + ex);
-            rtn.add(null);
-         }
+         rtn.add(classifyInstance(unclassed.instance(ndx)));
       }
 
       return rtn;
+   }
+
+   /**
+    * First try to get the class distribution, if it fails just try to do normal classification.
+    */
+   private ClassificationResult classifyInstance(Instance instance) {
+      try {
+         double[] classDistribution = activeClassifier.distributionForInstance(instance);
+
+         double maxValue = -1;
+         int maxIndex = 0;
+         for (int i = 0; i < classDistribution.length; i++) {
+            if (classDistribution[i] > maxValue) {
+               maxValue = classDistribution[i];
+               maxIndex = i;
+            }
+         }
+
+         return new ClassificationResult(instance.classAttribute().value(maxIndex), maxValue);
+      } catch (Exception distributionEx) {
+         try {
+            int prediction = (int)activeClassifier.classifyInstance(instance);
+            return new ClassificationResult(instance.classAttribute().value(prediction), -1);
+         } catch (Exception ex) {
+            return new ClassificationResult(null, -1);
+         }
+      }
    }
 
    /**

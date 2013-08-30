@@ -25,8 +25,20 @@ public abstract class TextClassifier {
    /**
     * Classify many documents.
     */
-   public List<String> classify(List<String> contents) {
-      List<String> results = new ArrayList<String>(contents.size());
+   public List<String> classifyToString(List<String> contents) {
+      List<String> rtn = new ArrayList<String>(contents.size());
+      List<ClassificationResult> results = classify(contents);
+
+      for (ClassificationResult result : results) {
+         rtn.add(result.getClassValue());
+      }
+
+      return rtn;
+   }
+
+   public List<ClassificationResult> classify(List<String> contents) {
+      List<ClassificationResult> results =
+         new ArrayList<ClassificationResult>(contents.size());
 
       for (String content : contents) {
          results.add(classify(content));
@@ -38,7 +50,15 @@ public abstract class TextClassifier {
    /**
     * Classify a single document.
     */
-   public abstract String classify(String content);
+   public String classifyToString(String content) {
+      return classify(content).getClassValue();
+   }
+
+   /**
+    * The real implementation for classification.
+    * If the classifier does not supprt confidences, then just put -1 in the result.
+    */
+   public abstract ClassificationResult classify(String document);
 
    /**
     * Train the classifier with the given training set, and use the given

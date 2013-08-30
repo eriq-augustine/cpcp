@@ -46,11 +46,15 @@
          <fileset dir="src">
          </fileset>
       </copy>
-      <jar destfile="${ant.project.name}.jar" basedir="bin" compress="true" />
+      <jar destfile="${ant.project.name}.jar" basedir="bin" compress="true">
+         <zipgroupfileset dir="lib" includes="*.jar"/>
+      </jar>
    </target>
 
    <target name="bin-jar" description="Package into JAR excluding source" depends="clean,build">
-      <jar destfile="${ant.project.name}.jar" basedir="bin" compress="true" />
+      <jar destfile="${ant.project.name}.jar" basedir="bin" compress="true">
+         <zipgroupfileset dir="lib" includes="*.jar"/>
+      </jar>
    </target>
 
    <!--

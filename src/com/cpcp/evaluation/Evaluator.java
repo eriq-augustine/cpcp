@@ -1,6 +1,7 @@
 package com.cpcp.evaluation;
 
 import com.cpcp.TextClassifier;
+import com.cpcp.ClassificationResult;
 import com.cpcp.features.FeatureSetGenerator;
 import com.cpcp.util.math.GeneralConfusionMatrix;
 
@@ -127,11 +128,11 @@ public class Evaluator {
          classy.train(trainContents, trainClasses);
 
          // Classify the current fold.
-         List<String> predictions = classy.classify(splitContents.get(foldNdx));
+         List<ClassificationResult> predictions = classy.classify(splitContents.get(foldNdx));
 
          // For all the results.
          for (int stringNdx = 0; stringNdx < predictions.size(); stringNdx++) {
-            confusionMatrix.add(predictions.get(stringNdx),
+            confusionMatrix.add(predictions.get(stringNdx).getClassValue(),
                                 splitClasses.get(foldNdx).get(stringNdx));
          }
       }
