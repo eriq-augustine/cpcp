@@ -1,5 +1,6 @@
 package com.cpcp.features;
 
+import com.cpcp.document.TextDocument;
 import com.cpcp.filter.TextFilter;
 import com.cpcp.util.math.MathUtils;
 
@@ -27,11 +28,12 @@ public class BNS extends NGram {
    /**
     * @inhericDoc
     */
-   public Set<String> getFeatureSpace(List<String> documents, List<String> classes) {
+   public Set<String> getFeatureSpace(List<TextDocument> documents,
+                                      List<String> classes) {
       Set<String> rtn = new HashSet<String>();
 
       List<Set<String>> documentFeatures = new ArrayList<Set<String>>();
-      for (String document : documents) {
+      for (TextDocument document : documents) {
          documentFeatures.add(parseFeatures(document));
       }
 

@@ -1,5 +1,6 @@
 package com.cpcp.features;
 
+import com.cpcp.document.TextDocument;
 import com.cpcp.filter.SmartSplitString;
 
 import java.util.ArrayList;
@@ -37,8 +38,8 @@ public class SF extends NGram {
    /**
     * @inheritDoc
     */
-   public Set<String> getFeatureSpace(List<String> contents, List<String> classes) {
-      Map<String, Integer> freqs = getFreqs(contents);
+   public Set<String> getFeatureSpace(List<TextDocument> documents, List<String> classes) {
+      Map<String, Integer> freqs = getFreqs(documents);
 
       if (freqs.size() <= numFeatures) {
          return new HashSet<String>(freqs.keySet());
@@ -115,11 +116,11 @@ public class SF extends NGram {
       return rtn;
    }
 
-   private Map<String, Integer> getFreqs(List<String> contents) {
+   private Map<String, Integer> getFreqs(List<TextDocument> documents) {
       Map<String, Integer> freqs = new HashMap<String, Integer>();
 
-      for (String content : contents) {
-         for (String word : SmartSplitString.split(content)) {
+      for (TextDocument document : documents) {
+         for (String word : SmartSplitString.split(document.getContent())) {
             if (!freqs.containsKey(word)) {
                freqs.put(word, 1);
             } else {

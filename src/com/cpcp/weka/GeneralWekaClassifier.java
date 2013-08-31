@@ -1,7 +1,8 @@
 package com.cpcp.weka;
 
-import com.cpcp.TextClassifier;
+import com.cpcp.CPCPClassifier;
 import com.cpcp.ClassificationResult;
+import com.cpcp.document.Document;
 import com.cpcp.features.FeatureSetGenerator;
 import com.cpcp.filter.TextFilter;
 
@@ -20,8 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The base for different types of classifiers.
- * This Classifier will be build around a WEKA classifier.
+ * The base for different types of WEKA classifiers.
  * Some WEKA classifiers to try:
  *  - weka.classifiers.bayes.NaiveBayes
  *  - weka.classifiers.bayes.net.BayesNetGenerator
@@ -29,7 +29,7 @@ import java.util.Set;
  *  - weka.classifiers.lazy.IBk (KNN)
  *  - weka.classifiers.trees.J48
  */
-public class GeneralWekaClassifier extends TextClassifier {
+public class GeneralWekaClassifier<E extends Document> extends CPCPClassifier<E> {
    /**
     * The WEKA classifier to use make copies for specific classifiers.
     */
@@ -49,7 +49,7 @@ public class GeneralWekaClassifier extends TextClassifier {
     *  This classifier should have all its desired options set.
     */
    public GeneralWekaClassifier(Classifier classy,
-                                FeatureSetGenerator fsg,
+                                FeatureSetGenerator<E> fsg,
                                 List<String> possibleClasses) {
       super(possibleClasses, fsg);
       untrainedClassifier = classy;
@@ -61,13 +61,13 @@ public class GeneralWekaClassifier extends TextClassifier {
    /**
     * @inheritDoc
     */
-   public void train(List<String> contents, List<String> classes) {
-      Instances trainSet = prepTrainingSet(contents, classes);
+   public void train(List<E> documents, List<String> classes) {
+      Instances trainSet = prepTrainingSet(documents, classes);
       buildClassifier(trainSet);
    }
 
-   public ClassificationResult classify(String document) {
-      List<String> documents = new ArrayList<String>(1);
+   public ClassificationResult classify(E document) {
+      List<E> documents = new ArrayList<E>(1);
       documents.add(document);
 
       List<ClassificationResult> classes = classify(documents);
@@ -79,10 +79,10 @@ public class GeneralWekaClassifier extends TextClassifier {
     * Need to override because it is more efficient for WEKA classifiers
     * to do groups at a time.
     */
-   public List<ClassificationResult> classify(List<String> contents) {
+   public List<ClassificationResult> classify(List<E> documents) {
       assert(activeClassifier != null);
 
-      Instances unclassed = prepUnclassed(contents);
+      Instances unclassed = prepUnclassed(documents);
 
       List<ClassificationResult> rtn = new ArrayList<ClassificationResult>();
 
@@ -123,23 +123,23 @@ public class GeneralWekaClassifier extends TextClassifier {
    /**
     * Jump through all the WEKA hoops to get the training set ready.
     */
-   private Instances prepTrainingSet(List<String> contents, List<String> classes) {
+   private Instances prepTrainingSet(List<E> documents, List<String> classes) {
       ArrayList<Attribute> features = getWekaFeatures();
 
       Instances trainSet = new Instances("ClassTrainingSet", features, classes.size());
       trainSet.setClassIndex(0);
 
-      List<Set<String>> featureSets = fsg.parseFeatures(contents);
-      List<String> newContents = new ArrayList<String>();
-      for (Set<String> contentFeatures : featureSets) {
-         newContents.add(StringUtils.join(contentFeatures, " "));
+      List<String> newDocuments = new ArrayList<String>();
+      List<Set<String>> featureSets = fsg.parseFeatures(documents);
+      for (Set<String> documentFeatures : featureSets) {
+         newDocuments.add(StringUtils.join(documentFeatures, " "));
       }
 
       // Add the classes to the training set.
       for (int ndx = 0; ndx < classes.size(); ndx++) {
          Instance inst = new DenseInstance(2);
          inst.setValue(features.get(0), classes.get(ndx).toString());
-         inst.setValue(features.get(1), newContents.get(ndx));
+         inst.setValue(features.get(1), newDocuments.get(ndx));
 
          trainSet.add(inst);
       }
@@ -150,8 +150,7 @@ public class GeneralWekaClassifier extends TextClassifier {
          trainSet = weka.filters.Filter.useFilter(trainSet, stringFilter);
          trainSet.setClassIndex(0);
       } catch (Exception ex) {
-         // TODO(eriq): Real logging
-         System.err.println("Unable to apply classification filter." + ex);
+         return null;
       }
 
       return trainSet;
@@ -202,8 +201,7 @@ public class GeneralWekaClassifier extends TextClassifier {
          newFilter.setInputFormat(inputFormat);
          newFilter.setOptions(options);
       } catch (Exception ex) {
-         // TODO(eriq): Real logging, fatal.
-         System.err.println("Unable to create classification filter." + ex);
+         return null;
       }
 
       return newFilter;
@@ -232,27 +230,27 @@ public class GeneralWekaClassifier extends TextClassifier {
    }
 
    /**
-    * Prepare a list of document contents for classification.
+    * Prepare a list of documents for classification.
     * Prep work includes getting the features for the classifier,
-    *  setting the class index, filtering the contents,
-    *  loading the contents into Instances and
+    *  setting the class index, filtering the document,
+    *  loading the documents into Instances and
     *  filtering the instances.
     */
-   private Instances prepUnclassed(List<String> contents) {
+   private Instances prepUnclassed(List<E> documents) {
       ArrayList<Attribute> newFeatures = getWekaFeatures();
 
-      Instances unclassed = new Instances("UnclassifiedTweets", newFeatures, contents.size());
+      Instances unclassed = new Instances("UnclassifiedTweets", newFeatures, documents.size());
       unclassed.setClassIndex(0);
 
-      List<String> newContents = new ArrayList<String>();
-      List<Set<String>> featureSets = fsg.parseFeatures(contents);
+      List<Set<String>> featureSets = fsg.parseFeatures(documents);
+      List<String> newDocuments = new ArrayList<String>();
       for (Set<String> features : featureSets) {
-         newContents.add(StringUtils.join(features, " "));
+         newDocuments.add(StringUtils.join(features, " "));
       }
 
-      for (String content : newContents) {
+      for (String stringDocument : newDocuments) {
          Instance inst = new DenseInstance(2);
-         inst.setValue(newFeatures.get(1), content);
+         inst.setValue(newFeatures.get(1), stringDocument);
 
          unclassed.add(inst);
       }
@@ -261,8 +259,6 @@ public class GeneralWekaClassifier extends TextClassifier {
       try {
          unclassed = weka.filters.Filter.useFilter(unclassed, stringFilter);
       } catch (Exception ex) {
-         // TODO(eriq): Real logging, error.
-         System.err.println("Unable to filter unclassified documents." + ex);
          return null;
       }
 

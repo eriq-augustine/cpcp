@@ -1,5 +1,7 @@
 package com.cpcp.features;
 
+import com.cpcp.document.Document;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,14 +12,14 @@ import java.util.TreeMap;
 /**
  * Does evaluation on a feature set (or FeatureSetGenerator) given a training set.
  */
-public class FeatureSetEvaluator {
+public class FeatureSetEvaluator<E extends Document> {
    /**
     * Evaluate a FeatureSetGenerator.
     */
-   public double evaluateFeatureSet(List<String> trainingContents, List<String> trainingClasses,
-                                    FeatureSetGenerator generator) {
-      return evaluateFeatureSet(trainingContents, trainingClasses,
-                                generator.getFeatureSpace(trainingContents, trainingClasses),
+   public double evaluateFeatureSet(List<E> trainingDocuments, List<String> trainingClasses,
+                                    FeatureSetGenerator<E> generator) {
+      return evaluateFeatureSet(trainingDocuments, trainingClasses,
+                                generator.getFeatureSpace(trainingDocuments, trainingClasses),
                                 generator);
    }
 
@@ -26,16 +28,16 @@ public class FeatureSetEvaluator {
     * It will get the features for each document, but then only pay attention to ones that are in
     *  |featureSet|.
     */
-   public double evaluateFeatureSet(List<String> trainingContents, List<String> trainingClasses,
-                                    Set<String> featureSet, FeatureSetGenerator generator) {
+   public double evaluateFeatureSet(List<E> trainingDocuments, List<String> trainingClasses,
+                                    Set<String> featureSet, FeatureSetGenerator<E> generator) {
       // {feature => Set (training indexes)
       Map<String, Map<String, Integer>> counts = new HashMap<String, Map<String, Integer>>();
       // feature => total
       Map<String, Integer> totals = new HashMap<String, Integer>();
 
-      List<Set<String>> features = generator.parseFeatures(trainingContents);
+      List<Set<String>> features = generator.parseFeatures(trainingDocuments);
 
-      for (int i = 0; i < trainingContents.size(); i++) {
+      for (int i = 0; i < trainingDocuments.size(); i++) {
          for (String feature : features.get(i)) {
             if (!featureSet.contains(feature)) {
                continue;
@@ -65,7 +67,7 @@ public class FeatureSetEvaluator {
       for (String feature : counts.keySet()) {
          String line = String.format("%-30s -- ",
                                      String.format("%s (%d / %d)", feature,
-                                                   totals.get(feature), trainingContents.size()));
+                                                   totals.get(feature), trainingDocuments.size()));
          double max = -1;
 
          for (Map.Entry<String, Integer> count : counts.get(feature).entrySet()) {

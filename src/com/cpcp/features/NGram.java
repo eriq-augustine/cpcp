@@ -1,5 +1,6 @@
 package com.cpcp.features;
 
+import com.cpcp.document.TextDocument;
 import com.cpcp.filter.FullFilter;
 import com.cpcp.filter.TextFilter;
 
@@ -17,7 +18,7 @@ import java.util.Set;
  *
  * TODO(eriq): Just still returning a string a delimiting with a '-' is a bit of a hack, change it.
  */
-public class NGram extends FeatureSetGenerator {
+public class NGram extends FeatureSetGenerator<TextDocument> {
    /**
     * The minium amout of times that a feature has to appear to be counted.
     */
@@ -43,12 +44,13 @@ public class NGram extends FeatureSetGenerator {
    /**
     * @inhericDoc
     */
-   public Set<String> getFeatureSpace(List<String> documents, List<String> classes) {
+   public Set<String> getFeatureSpace(List<TextDocument> documents,
+                                      List<String> classes) {
       // feture => freq
       Map<String, Integer> counts = new HashMap<String, Integer>();
       Set<String> features = new HashSet<String>();
 
-      for (String document : documents) {
+      for (TextDocument document : documents) {
          for (String gram : parseFeatures(document)) {
             if (!counts.containsKey(gram)) {
                counts.put(gram, 1);
@@ -68,20 +70,20 @@ public class NGram extends FeatureSetGenerator {
    /**
     * @inheritDoc
     */
-   public Set<String> parseFeatures(String document) {
+   public Set<String> parseFeatures(TextDocument document) {
       Set<String> features = new HashSet<String>();
 
-      for (String gram : split(document)) {
+      for (String gram : split(document.getContent())) {
          features.add(gram);
       }
 
       return features;
    }
 
-   private List<String> split(String document) {
+   private List<String> split(String content) {
       List<String> rtn = new ArrayList<String>();
 
-      String[] words = filter.splitFilter(document);
+      String[] words = filter.splitFilter(content);
       for (int i = 0; i + n <= words.length; i++) {
          String gram = "";
          for (int j = 0; j < n; j++) {

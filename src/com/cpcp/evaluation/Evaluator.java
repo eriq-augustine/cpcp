@@ -1,7 +1,9 @@
 package com.cpcp.evaluation;
 
-import com.cpcp.TextClassifier;
+import com.cpcp.CPCPClassifier;
 import com.cpcp.ClassificationResult;
+import com.cpcp.document.Document;
+import com.cpcp.document.TextDocument;
 import com.cpcp.features.FeatureSetGenerator;
 import com.cpcp.util.math.GeneralConfusionMatrix;
 
@@ -22,11 +24,12 @@ import java.util.Set;
  */
 public class Evaluator {
    public static void main(String[] args) throws Exception {
-      List<String> contents = new ArrayList<String>();
+      List<TextDocument> documents = new ArrayList<TextDocument>();
       List<String> classes = new ArrayList<String>();
 
-      loadTrainingSet("data/classifierTrainingTweetData.gsv", "`", contents, classes);
-      // loadTrainingSet("data/classifierTrainingTweetDataCompressed.gsv", "`", contents, classes);
+      loadTrainingSet("data/classifierTrainingTweetData.gsv", "`", documents, classes);
+      // loadTrainingSet("data/classifierTrainingTweetDataCompressed.gsv", "`",
+      //                 documents, classes);
 
       Set<String> classValueSet = getClassValues(classes);
       String[] classValues = classValueSet.toArray(new String[0]);
@@ -36,12 +39,12 @@ public class Evaluator {
          possibleClasses.add(classValue);
       }
 
-      TextClassifier classy = new com.cpcp.weka.GeneralWekaClassifier(
+      CPCPClassifier<TextDocument> classy = new com.cpcp.weka.GeneralWekaClassifier<TextDocument>(
          new weka.classifiers.bayes.NaiveBayes(),
          new com.cpcp.features.NGram(1, 1, new com.cpcp.filter.FullFilter()),
          possibleClasses);
 
-      Results res = crossValidate(classy, contents, classes, 10, 4);
+      Results res = crossValidate(classy, documents, classes, 10, 4);
       System.out.println(res);
    }
 
@@ -52,7 +55,7 @@ public class Evaluator {
     */
    private static void loadTrainingSet(String path,
                                        String seperator,
-                                       List<String> contents,
+                                       List<TextDocument> documents,
                                        List<String> classes) throws Exception {
       Scanner fileScanner = new Scanner(new File(path));
       while (fileScanner.hasNextLine()) {
@@ -60,7 +63,7 @@ public class Evaluator {
          String[] parts = line.split(seperator);
 
          classes.add(parts[0]);
-         contents.add(parts[1]);
+         documents.add(new TextDocument(parts[1]));
       }
    }
 
@@ -74,9 +77,10 @@ public class Evaluator {
       return rtn;
    }
 
-   public static Results crossValidate(TextClassifier classy,
-                                       List<String> contents, List<String> classes,
-                                       int numFolds, long seed) {
+   public static <E extends Document> Results crossValidate(
+         CPCPClassifier<E> classy,
+         List<E> documents, List<String> classes,
+         int numFolds, long seed) {
       long timestamp = System.currentTimeMillis();
 
       Set<String> classValueSet = getClassValues(classes);
@@ -89,51 +93,47 @@ public class Evaluator {
          return new Results(confusionMatrix, (System.currentTimeMillis() - timestamp));
       }
 
-      List<List<String>> toSplit = new ArrayList<List<String>>();
-      toSplit.add(classes);
-      toSplit.add(contents);
+      List<TrainingDocument> trainingDocuments = TrainingDocument.buildList(documents, classes);
 
-      List<List<List<String>>> splittedList = new ArrayList<List<List<String>>>();
+      // Split the training set into the number of folds.
+      List<List<TrainingDocument>> splitList = splitList(trainingDocuments, numFolds, seed);
 
-      //Split the training set into the number of folds.
-      splitList(toSplit, splittedList, numFolds, seed);
-
-      Object trickCompiler;
-
-      trickCompiler = splittedList.get(0);
-      @SuppressWarnings("unchecked")
-      List<List<String>> splitClasses = (List<List<String>>)trickCompiler;
-
-      trickCompiler = splittedList.get(1);
-      @SuppressWarnings("unchecked")
-      List<List<String>> splitContents = (List<List<String>>)trickCompiler;
-
-      // For the number of folds.
       for (int foldNdx = 0; foldNdx < numFolds; foldNdx++) {
-         // Make an empty training set.
          List<String> trainClasses = new ArrayList<String>();
-         List<String> trainContents = new ArrayList<String>();
+         List<E> trainDocuments = new ArrayList<E>();
+
+         List<String> actualClasses = new ArrayList<String>();
+         List<E> toClassify = new ArrayList<E>();
 
          // For all folds.
          for (int ndx = 0; ndx < numFolds; ndx++) {
-            // If it is not the current fold.
-            if (ndx != foldNdx) {
-               // Add to the training set.
-               trainClasses.addAll(splitClasses.get(ndx));
-               trainContents.addAll(splitContents.get(ndx));
+            for (TrainingDocument trainDocument : splitList.get(ndx)) {
+               // If it is not the current fold.
+               if (ndx != foldNdx) {
+                  // Add to the training set.
+                  trainClasses.add(trainDocument.classValue);
+                  @SuppressWarnings("unchecked")
+                  E suppressWarningDocument = (E)trainDocument.document;
+                  trainDocuments.add(suppressWarningDocument);
+               } else {
+                  // Add to the classify set.
+                  actualClasses.add(trainDocument.classValue);
+                  @SuppressWarnings("unchecked")
+                  E suppressWarningDocument = (E)trainDocument.document;
+                  toClassify.add(suppressWarningDocument);
+               }
             }
          }
 
          // Retrain the classifier on the new training set.
-         classy.train(trainContents, trainClasses);
+         classy.train(trainDocuments, trainClasses);
 
          // Classify the current fold.
-         List<ClassificationResult> predictions = classy.classify(splitContents.get(foldNdx));
+         List<ClassificationResult> predictions = classy.classify(toClassify);
 
-         // For all the results.
          for (int stringNdx = 0; stringNdx < predictions.size(); stringNdx++) {
             confusionMatrix.add(predictions.get(stringNdx).getClassValue(),
-                                splitClasses.get(foldNdx).get(stringNdx));
+                                actualClasses.get(stringNdx));
          }
       }
 
@@ -142,56 +142,59 @@ public class Evaluator {
 
    /**
     * Split the input data into the given number of folds.
-    * The given lists will be destroyed in the process.
-    * The price that is paid for this method being so general is that
-    *  taking the lists out of outputLists generates unckecked exceptions.
+    * The given list will be destroyed in the process.
     *
     * @param inputLists All the lists to split
-    * @param outputLists Split-up version of the given lists
     * @param numFolds The number of partitions for the list.
     * @param seed The seed to use for partitioning the lists.
-    *
-    * @.pre Every list in inputLists should be the same size.
     */
-   protected static void splitList(List<List<String>> inputLists,
-                                   List<List<List<String>>> outputLists,
-                                   int numFolds, long seed) {
+   private static <E extends TrainingDocument> List<List<E>> splitList(List<E> input,
+                                                                       int numFolds,
+                                                                       long seed) {
       // Get a new Random
       Random rand = new Random(seed);
 
-      //Empty the output lists
-      outputLists.clear();
-
-      //FOR every input list
-      for (int numLists = 0; numLists < inputLists.size(); numLists++) {
-         List<List<String>> newList = new ArrayList<List<String>>();
-
-         //create all the lists
-         for (int ndx = 0; ndx < numFolds; ndx++) {
-            newList.add(new ArrayList<String>());
-         }
-
-         outputLists.add(newList);
+      List<List<E>> outputLists = new ArrayList<List<E>>();
+      for (int i = 0; i < numFolds; i++) {
+         outputLists.add(new ArrayList<E>());
       }
 
-      //Start at the first sublist
       int currentList = 0;
 
-      //WHILE there are still elements in the list
-      while (inputLists.get(0).size() > 0) {
-         //Remove a random element from the main list and put it in
-         // the current sublist
-         int randInt = rand.nextInt(inputLists.get(0).size());
+      // While there are still elements in the input list.
+      while (input.size() > 0) {
+         //Remove a random element from the main list and put it in the current sublist
+         int randInt = rand.nextInt(input.size());
+         outputLists.get(currentList).add(input.remove(randInt));
 
-         for (int numList = 0; numList < inputLists.size(); numList++) {
-            //Catch the result of the add so that only this line can be suppressed.
-            @SuppressWarnings("unchecked")
-            boolean res =
-             outputLists.get(numList).get(currentList).add(inputLists.get(numList).remove(randInt));
+         currentList = (currentList + 1) % numFolds;
+      }
+
+      return outputLists;
+   }
+
+   /**
+    * A wrapper for a document and class value together.
+    */
+   public static class TrainingDocument {
+      public Document document;
+      public String classValue;
+
+      public TrainingDocument(Document document, String classValue) {
+         this.document = document;
+         this.classValue = classValue;
+      }
+
+      public static List<TrainingDocument> buildList(
+            List<? extends Document> documents,
+            List<String> classes) {
+         List<TrainingDocument> rtn = new ArrayList<TrainingDocument>();
+
+         for (int i = 0; i < documents.size(); i++) {
+            rtn.add(new TrainingDocument(documents.get(i), classes.get(i)));
          }
 
-         //Move to the next sublist
-         currentList = (currentList + 1) % numFolds;
+         return rtn;
       }
    }
 
