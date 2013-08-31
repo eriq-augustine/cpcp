@@ -28,6 +28,9 @@ import java.util.Set;
  *  - weka.classifiers.functions.SMO (SVM)
  *  - weka.classifiers.lazy.IBk (KNN)
  *  - weka.classifiers.trees.J48
+ *
+ * Note: If you plan on overriding any classify() method, you should either override both
+ *  classify() methods, or the classifyImpl() method.
  */
 public class GeneralWekaClassifier<E extends Document> extends CPCPClassifier<E> {
    /**
@@ -66,11 +69,12 @@ public class GeneralWekaClassifier<E extends Document> extends CPCPClassifier<E>
       buildClassifier(trainSet);
    }
 
+   @Override
    public ClassificationResult classify(E document) {
       List<E> documents = new ArrayList<E>(1);
       documents.add(document);
 
-      List<ClassificationResult> classes = classify(documents);
+      List<ClassificationResult> classes = classifyImpl(documents);
       return classes.get(0);
    }
 
@@ -79,7 +83,16 @@ public class GeneralWekaClassifier<E extends Document> extends CPCPClassifier<E>
     * Need to override because it is more efficient for WEKA classifiers
     * to do groups at a time.
     */
+   @Override
    public List<ClassificationResult> classify(List<E> documents) {
+      return classifyImpl(documents);
+   }
+
+   /**
+    * The real classification implementation.
+    * Instead of overriding both classify() methods, this can be overriden.
+    */
+   protected List<ClassificationResult> classifyImpl(List<E> documents) {
       assert(activeClassifier != null);
 
       Instances unclassed = prepUnclassed(documents);
